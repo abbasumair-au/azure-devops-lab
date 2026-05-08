@@ -55,7 +55,6 @@ echo ""
 echo ">>> Installing Prometheus + Grafana..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --create-namespace \
@@ -64,12 +63,8 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
 
 # ── ArgoCD Apps ──────────────────────────────────────
 echo ""
-echo ">>> Applying ArgoCD app manifests..."
-if [ -d ~/azure-devops-lab/apps ]; then
-  kubectl apply -f ~/azure-devops-lab/apps/
-else
-  echo ">>> No apps/ directory found, skipping."
-fi
+echo ">>> Applying ArgoCD root app..."
+kubectl apply -f ~/azure-devops-lab/apps/root.yml
 
 # ── Done ─────────────────────────────────────────────
 echo ""
