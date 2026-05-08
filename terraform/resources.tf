@@ -76,7 +76,7 @@ resource "azurerm_key_vault" "lab" {
   sku_name            = "standard"
 
   soft_delete_retention_days = 7
-  purge_protection_enabled   = false  # must be false to allow purge
+  purge_protection_enabled   = false # must be false to allow purge
 
   lifecycle {
     prevent_destroy = false

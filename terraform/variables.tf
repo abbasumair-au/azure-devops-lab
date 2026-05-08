@@ -8,4 +8,4 @@ variable "environment" {
 
 variable "prefix" {
   default = "umair"
-}# triggered
+} # triggered
