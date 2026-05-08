@@ -1,0 +1,59 @@
+name: App Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+
+env:
+  ACR_NAME: umairlabacr
+  ACR_LOGIN_SERVER: umairlabacr.azurecr.io
+  IMAGE_NAME: myapp
+  HELM_CHART_PATH: helm-charts/myapp
+
+jobs:
+  build-and-deploy:
+    name: Build, Push, Update Helm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_TAG=${{ github.run_number }}
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG ./app
+          docker push ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG
+          docker tag ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:$IMAGE_TAG \
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Update Helm values with new image tag
+        run: |
+          sed -i "s/tag: .*/tag: \"${{ env.IMAGE_TAG }}\"/" ${{ env.HELM_CHART_PATH }}/values.yaml
+          echo "Updated image tag to ${{ env.IMAGE_TAG }}"
+          cat ${{ env.HELM_CHART_PATH }}/values.yaml
+
+      - name: Commit updated image tag
+        run: |
+          git config --global user.email "pipeline@github-actions.com"
+          git config --global user.name "GitHub Actions"
+          git add ${{ env.HELM_CHART_PATH }}/values.yaml
+          git diff --staged --quiet || git commit -m "ci: update myapp image tag to ${{ env.IMAGE_TAG }}"
+          git push
