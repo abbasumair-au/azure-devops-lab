@@ -23,7 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           fetch-depth: 0
 
       - name: Azure Login
@@ -54,6 +54,7 @@ jobs:
         run: |
           git config --global user.email "pipeline@github-actions.com"
           git config --global user.name "GitHub Actions"
+          git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/abbasumair-au/azure-devops-lab.git
           git add ${{ env.HELM_CHART_PATH }}/values.yaml
           git diff --staged --quiet || git commit -m "ci: update myapp image tag to ${{ env.IMAGE_TAG }}"
           git push
