@@ -45,6 +45,12 @@ resource "azurerm_linux_web_app_slot" "staging" {
   app_settings = {
     "KEY_VAULT_URI" = var.key_vault_uri
   }
+
+  # Workaround for azurerm 3.x provider bug: it attempts to read storage
+  # accounts before the slot is fully propagated, causing a spurious 404.
+  lifecycle {
+    ignore_changes = [storage_account]
+  }
 }
 
 # Grant the App Service managed identity read access to Key Vault secrets
