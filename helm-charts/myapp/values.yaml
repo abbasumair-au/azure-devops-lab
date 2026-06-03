@@ -40,3 +40,5 @@ volumeMounts: []
 nodeSelector: {}
 tolerations: []
 affinity: {}
+ingress:
+  enabled: false
