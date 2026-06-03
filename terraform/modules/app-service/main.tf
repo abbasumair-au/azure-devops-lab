@@ -1,15 +1,20 @@
+resource "azurerm_resource_group" "app_service" {
+  name     = "rg-${var.prefix}-appservice-${var.environment}"
+  location = var.location
+}
+
 resource "azurerm_service_plan" "this" {
   name                = "asp-${var.prefix}-${var.environment}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
+  location            = azurerm_resource_group.app_service.location
+  resource_group_name = azurerm_resource_group.app_service.name
   os_type             = "Linux"
   sku_name            = var.sku_name
 }
 
 resource "azurerm_linux_web_app" "this" {
   name                      = "app-${var.prefix}-${var.environment}"
-  location                  = var.location
-  resource_group_name       = var.resource_group_name
+  location                  = azurerm_resource_group.app_service.location
+  resource_group_name       = azurerm_resource_group.app_service.name
   service_plan_id           = azurerm_service_plan.this.id
   virtual_network_subnet_id = var.subnet_id
 

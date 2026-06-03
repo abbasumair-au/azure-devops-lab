@@ -17,3 +17,8 @@ output "principal_id" {
   description = "Object ID of the App Service system-assigned managed identity"
   value       = azurerm_linux_web_app.this.identity[0].principal_id
 }
+
+output "resource_group_name" {
+  description = "Resource group created for App Service resources"
+  value       = azurerm_resource_group.app_service.name
+}
