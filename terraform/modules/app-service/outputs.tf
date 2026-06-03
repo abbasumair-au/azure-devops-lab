@@ -22,3 +22,8 @@ output "resource_group_name" {
   description = "Resource group created for App Service resources"
   value       = azurerm_resource_group.app_service.name
 }
+
+output "staging_slot_hostname" {
+  description = "Default hostname of the staging deployment slot"
+  value       = azurerm_linux_web_app_slot.staging.default_hostname
+}

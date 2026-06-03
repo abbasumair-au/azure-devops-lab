@@ -22,7 +22,24 @@ resource "azurerm_linux_web_app" "this" {
   }
 
   site_config {
-    always_on = false
+    always_on = true
+  }
+
+  app_settings = {
+    "KEY_VAULT_URI" = var.key_vault_uri
+  }
+}
+
+resource "azurerm_linux_web_app_slot" "staging" {
+  name           = var.slot_name
+  app_service_id = azurerm_linux_web_app.this.id
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  site_config {
+    always_on = true
   }
 
   app_settings = {

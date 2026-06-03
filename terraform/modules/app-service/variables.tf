@@ -34,7 +34,13 @@ variable "key_vault_uri" {
 }
 
 variable "sku_name" {
-  description = "App Service Plan SKU"
+  description = "App Service Plan SKU (must be S1+ for deployment slots)"
   type        = string
-  default     = "F1"
+  default     = "S1"
+}
+
+variable "slot_name" {
+  description = "Name of the staging deployment slot"
+  type        = string
+  default     = "staging"
 }

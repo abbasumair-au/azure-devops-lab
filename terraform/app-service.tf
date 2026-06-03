@@ -3,7 +3,7 @@ module "app_service" {
 
   prefix              = var.prefix
   environment         = var.environment
-  location            = var.location
+  location            = "francecentral"
   resource_group_name = azurerm_resource_group.lab.name
 
   vnet_id       = azurerm_virtual_network.lab.id
@@ -13,4 +13,8 @@ module "app_service" {
 
 output "app_service_hostname" {
   value = module.app_service.app_service_hostname
+}
+
+output "app_service_staging_hostname" {
+  value = module.app_service.staging_slot_hostname
 }
