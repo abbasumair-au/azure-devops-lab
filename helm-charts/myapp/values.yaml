@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: umairlabacr.azurecr.io/myapp
   pullPolicy: Always
-  tag: "latest"
+  tag: "4"
 
 service:
   type: ClusterIP
