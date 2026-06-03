@@ -12,7 +12,8 @@ service:
 
 containerPort: 5000
 
-imagePullSecrets: []
+imagePullSecrets:
+  - name: acr-secret
 nameOverride: ""
 fullnameOverride: ""
 
@@ -41,4 +42,7 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 ingress:
+  enabled: false
+
+httpRoute:
   enabled: false
