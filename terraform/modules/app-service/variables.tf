@@ -23,6 +23,11 @@ variable "vnet_id" {
   type        = string
 }
 
+variable "acr_login_server" {
+  description = "Login server URL of the Azure Container Registry (e.g. myacr.azurecr.io)"
+  type        = string
+}
+
 variable "key_vault_id" {
   description = "ID of the existing Key Vault (used for role assignment)"
   type        = string

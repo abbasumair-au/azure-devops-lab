@@ -27,3 +27,8 @@ output "staging_slot_hostname" {
   description = "Default hostname of the staging deployment slot"
   value       = azurerm_linux_web_app_slot.staging.default_hostname
 }
+
+output "staging_slot_principal_id" {
+  description = "Object ID of the staging slot system-assigned managed identity"
+  value       = azurerm_linux_web_app_slot.staging.identity[0].principal_id
+}
