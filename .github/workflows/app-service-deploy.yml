@@ -5,6 +5,7 @@ on:
     workflows: ["App Pipeline"]
     types: [completed]
     branches: [main]
+  workflow_dispatch:
 
 env:
   APP_NAME: app-umair-lab
@@ -16,7 +17,7 @@ jobs:
   deploy:
     name: Deploy → Staging → Swap
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Azure Login
