@@ -19,12 +19,7 @@ variable "resource_group_name" {
 }
 
 variable "vnet_id" {
-  description = "ID of the existing Virtual Network"
-  type        = string
-}
-
-variable "subnet_id" {
-  description = "ID of the subnet delegated to Microsoft.Web/serverFarms for VNet integration"
+  description = "ID of the existing Virtual Network (for reference/tagging)"
   type        = string
 }
 
@@ -41,5 +36,5 @@ variable "key_vault_uri" {
 variable "sku_name" {
   description = "App Service Plan SKU"
   type        = string
-  default     = "B1"
+  default     = "F1"
 }

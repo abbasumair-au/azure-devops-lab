@@ -12,18 +12,17 @@ resource "azurerm_service_plan" "this" {
 }
 
 resource "azurerm_linux_web_app" "this" {
-  name                      = "app-${var.prefix}-${var.environment}"
-  location                  = azurerm_resource_group.app_service.location
-  resource_group_name       = azurerm_resource_group.app_service.name
-  service_plan_id           = azurerm_service_plan.this.id
-  virtual_network_subnet_id = var.subnet_id
+  name                = "app-${var.prefix}-${var.environment}"
+  location            = azurerm_resource_group.app_service.location
+  resource_group_name = azurerm_resource_group.app_service.name
+  service_plan_id     = azurerm_service_plan.this.id
 
   identity {
     type = "SystemAssigned"
   }
 
   site_config {
-    always_on = true
+    always_on = false
   }
 
   app_settings = {
