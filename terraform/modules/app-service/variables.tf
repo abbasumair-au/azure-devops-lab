@@ -49,3 +49,9 @@ variable "slot_name" {
   type        = string
   default     = "staging"
 }
+
+variable "app_port" {
+  description = "Port the container listens on"
+  type        = number
+  default     = 5000
+}

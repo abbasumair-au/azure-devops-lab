@@ -29,6 +29,7 @@ resource "azurerm_linux_web_app" "this" {
     "KEY_VAULT_URI"              = var.key_vault_uri
     "DOCKER_REGISTRY_SERVER_URL" = "https://${var.acr_login_server}"
     "acrUseManagedIdentityCreds" = "true"
+    "WEBSITES_PORT"              = tostring(var.app_port)
   }
 }
 
@@ -48,6 +49,7 @@ resource "azurerm_linux_web_app_slot" "staging" {
     "KEY_VAULT_URI"              = var.key_vault_uri
     "DOCKER_REGISTRY_SERVER_URL" = "https://${var.acr_login_server}"
     "acrUseManagedIdentityCreds" = "true"
+    "WEBSITES_PORT"              = tostring(var.app_port)
   }
 
   # Workaround for azurerm 3.x provider bug: it attempts to read storage
