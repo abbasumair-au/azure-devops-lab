@@ -23,6 +23,10 @@ cd ~/azure-devops-lab/terraform
 terraform init -reconfigure
 terraform apply -auto-approve
 
+# ── App Service URLs ─────────────────────────────────
+APP_SERVICE_HOST=$(terraform output -raw app_service_hostname 2>/dev/null || echo "")
+APP_SERVICE_STAGING_HOST=$(terraform output -raw app_service_staging_hostname 2>/dev/null || echo "")
+
 # ── kubectl ──────────────────────────────────────────
 echo ""
 echo ">>> Connecting kubectl to AKS..."
@@ -80,4 +84,8 @@ echo "  Prometheus: kubectl port-forward svc/monitoring-kube-prometheus-promethe
 echo ""
 echo "  ArgoCD login: admin / $ARGOCD_PASSWORD"
 echo "  Grafana login: admin / prom-operator"
+echo ""
+echo "App Service:"
+echo "  Production: https://$APP_SERVICE_HOST"
+echo "  Staging:    https://$APP_SERVICE_STAGING_HOST"
 echo ""

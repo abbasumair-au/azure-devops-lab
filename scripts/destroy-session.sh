@@ -40,14 +40,16 @@ terraform destroy -auto-approve
 
 # ── Verify ───────────────────────────────────────────
 echo ""
-echo ">>> Verifying resource group is gone..."
-RG_EXISTS=$(az group exists --name rg-umair-lab)
+echo ">>> Verifying resource groups are gone..."
 
-if [ "$RG_EXISTS" = "false" ]; then
-  echo ">>> Resource group rg-umair-lab successfully deleted."
-else
-  echo ">>> WARNING: Resource group still exists. Check Azure portal."
-fi
+for RG in rg-umair-lab rg-umair-appservice-lab; do
+  RG_EXISTS=$(az group exists --name "$RG")
+  if [ "$RG_EXISTS" = "false" ]; then
+    echo ">>> $RG successfully deleted."
+  else
+    echo ">>> WARNING: $RG still exists. Check Azure portal."
+  fi
+done
 
 # ── Done ─────────────────────────────────────────────
 echo ""
