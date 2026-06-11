@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: umairlabacr.azurecr.io/myapp
   pullPolicy: Always
-  tag: "4"
+  tag: "latest"
 
 service:
   type: ClusterIP
@@ -12,8 +12,7 @@ service:
 
 containerPort: 5000
 
-imagePullSecrets:
-  - name: acr-secret
+imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
