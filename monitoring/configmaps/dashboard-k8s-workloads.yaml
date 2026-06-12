@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-k8s-workloads
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  k8s-workloads.json: |
+    {
+      "id": null,
+      "uid": "k8s-workload-health",
+      "title": "Kubernetes — Workload Health",
+      "tags": ["kubernetes", "operations"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Pod Restarts (rate 5m)",
+          "description": "Sustained restart rate = crashloop. Spike then zero = one-off failure. This is the first signal oncall checks.",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "expr": "sum by (namespace, pod, container) (rate(kube_pod_container_status_restarts_total[5m])) > 0",
+              "legendFormat": "{{namespace}} / {{pod}} / {{container}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Deployment — Available vs Desired Replicas",
+          "description": "Available < Desired = degraded deployment. Immediate action required.",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "fieldConfig": {
+            "defaults": { "unit": "short" },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "expr": "sum by (namespace, deployment) (kube_deployment_status_replicas_available)",
+              "legendFormat": "available — {{namespace}}/{{deployment}}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum by (namespace, deployment) (kube_deployment_spec_replicas)",
+              "legendFormat": "desired — {{namespace}}/{{deployment}}",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Pods Not Running",
+          "description": "Pending / Failed / Unknown pods across the cluster. Should always be 0 in steady state.",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "expr": "sum by (namespace, phase) (kube_pod_status_phase{phase=~\"Pending|Failed|Unknown\"}) > 0",
+              "legendFormat": "{{namespace}} — {{phase}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Total Pods by Namespace",
+          "description": "Capacity awareness — how many pods each namespace is consuming.",
+          "type": "bargauge",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+          "fieldConfig": {
+            "defaults": { "unit": "short" },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "displayMode": "gradient"
+          },
+          "targets": [
+            {
+              "expr": "sum by (namespace) (kube_pod_status_phase{phase=\"Running\"})",
+              "legendFormat": "{{namespace}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }

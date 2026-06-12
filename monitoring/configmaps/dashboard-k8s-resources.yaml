@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-k8s-resources
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  k8s-resources.json: |
+    {
+      "id": null,
+      "uid": "k8s-compute-resources",
+      "title": "Kubernetes — Compute Resources by Workload",
+      "tags": ["kubernetes", "capacity-planning"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "type": "query",
+            "query": "label_values(kube_pod_info, namespace)",
+            "refresh": 2,
+            "includeAll": true,
+            "allValue": ".*",
+            "current": {},
+            "datasource": { "type": "prometheus", "uid": "prometheus" }
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "CPU Usage by Pod",
+          "description": "Actual CPU consumed. Compare against requests/limits to detect saturation.",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "fieldConfig": {
+            "defaults": { "unit": "cores" },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=~\"$namespace\", container!=\"\", container!=\"POD\"}[5m]))",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Memory Usage by Pod",
+          "description": "Working set memory. OOMKill happens when this exceeds the limit.",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "fieldConfig": {
+            "defaults": { "unit": "bytes" },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=~\"$namespace\", container!=\"\", container!=\"POD\"})",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "CPU — Requests vs Limits vs Usage",
+          "description": "Requests = guaranteed. Limits = hard cap. Gap between usage and limit = headroom.",
+          "type": "bargauge",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "fieldConfig": {
+            "defaults": { "unit": "cores" },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "displayMode": "gradient"
+          },
+          "targets": [
+            {
+              "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=~\"$namespace\", resource=\"cpu\"})",
+              "legendFormat": "request — {{container}}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=~\"$namespace\", resource=\"cpu\"})",
+              "legendFormat": "limit — {{container}}",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Memory — Requests vs Limits vs Usage",
+          "description": "If usage > limit: OOMKill. If no limit set: pod can consume all node memory.",
+          "type": "bargauge",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "fieldConfig": {
+            "defaults": { "unit": "bytes" },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "displayMode": "gradient"
+          },
+          "targets": [
+            {
+              "expr": "sum by (container) (kube_pod_container_resource_requests{namespace=~\"$namespace\", resource=\"memory\"})",
+              "legendFormat": "request — {{container}}",
+              "refId": "A"
+            },
+            {
+              "expr": "sum by (container) (kube_pod_container_resource_limits{namespace=~\"$namespace\", resource=\"memory\"})",
+              "legendFormat": "limit — {{container}}",
+              "refId": "B"
+            }
+          ]
+        }
+      ]
+    }
