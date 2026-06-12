@@ -13,16 +13,6 @@ variable "location" {
   type        = string
 }
 
-variable "resource_group_name" {
-  description = "Resource group to deploy App Service resources into"
-  type        = string
-}
-
-variable "vnet_id" {
-  description = "ID of the existing Virtual Network (for reference/tagging)"
-  type        = string
-}
-
 variable "acr_login_server" {
   description = "Login server URL of the Azure Container Registry (e.g. myacr.azurecr.io)"
   type        = string

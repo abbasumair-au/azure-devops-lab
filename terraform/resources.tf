@@ -36,13 +36,15 @@ resource "azurerm_kubernetes_cluster" "lab" {
   resource_group_name = azurerm_resource_group.lab.name
   dns_prefix          = "${var.prefix}-${var.environment}"
 
-  oidc_issuer_enabled = true
+  oidc_issuer_enabled       = true
+  workload_identity_enabled = true
 
   default_node_pool {
     name           = "system"
     node_count     = 1
     vm_size        = "Standard_B2s"
     vnet_subnet_id = azurerm_subnet.aks.id
+    max_pods       = 110
 
     upgrade_settings {
       max_surge = "10%"
@@ -75,8 +77,9 @@ resource "azurerm_key_vault" "lab" {
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
 
-  soft_delete_retention_days = 7
-  purge_protection_enabled   = false # must be false to allow purge
+  soft_delete_retention_days  = 7
+  purge_protection_enabled    = false # must be false to allow purge
+  enable_rbac_authorization   = true
 
   lifecycle {
     prevent_destroy = false

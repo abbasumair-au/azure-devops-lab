@@ -16,6 +16,13 @@ fi
 
 echo ">>> Subscription: $SUBSCRIPTION_ID"
 
+# ── App Service check ────────────────────────────────
+if [ "$(az group exists --name rg-umair-appservice-lab)" = "true" ]; then
+  echo ">>> WARNING: App Service is still running."
+  echo ">>> Run ./scripts/destroy-app-service.sh first, then re-run this script."
+  exit 1
+fi
+
 # ── Purge soft-deleted Key Vaults ────────────────────
 echo ""
 echo ">>> Checking for soft-deleted Key Vaults..."
@@ -42,7 +49,7 @@ terraform destroy -auto-approve
 echo ""
 echo ">>> Verifying resource groups are gone..."
 
-for RG in rg-umair-lab rg-umair-appservice-lab; do
+for RG in rg-umair-lab; do
   RG_EXISTS=$(az group exists --name "$RG")
   if [ "$RG_EXISTS" = "false" ]; then
     echo ">>> $RG successfully deleted."

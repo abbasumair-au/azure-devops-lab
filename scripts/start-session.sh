@@ -23,10 +23,6 @@ cd ~/azure-devops-lab/terraform
 terraform init -reconfigure
 terraform apply -auto-approve
 
-# ── App Service URLs ─────────────────────────────────
-APP_SERVICE_HOST=$(terraform output -raw app_service_hostname 2>/dev/null || echo "")
-APP_SERVICE_STAGING_HOST=$(terraform output -raw app_service_staging_hostname 2>/dev/null || echo "")
-
 # ── kubectl ──────────────────────────────────────────
 echo ""
 echo ">>> Connecting kubectl to AKS..."
@@ -41,11 +37,24 @@ kubectl wait --for=condition=Ready nodes --all --timeout=180s
 echo ">>> Nodes:"
 kubectl get nodes
 
+# ── Workload Identity Demo ────────────────────────────
+echo ""
+echo ">>> Deploying Workload Identity demo..."
+export WORKLOAD_IDENTITY_CLIENT_ID=$(terraform output -raw workload_identity_client_id)
+export KEY_VAULT_URI=$(terraform output -raw key_vault_uri)
+
+envsubst < ~/azure-devops-lab/k8s/workload-identity/namespace.yaml      | kubectl apply -f -
+envsubst < ~/azure-devops-lab/k8s/workload-identity/serviceaccount.yaml | kubectl apply -f -
+envsubst < ~/azure-devops-lab/k8s/workload-identity/pod.yaml            | kubectl apply -f -
+
+echo ">>> Workload Identity pod deployed in namespace 'workload-identity-demo'."
+echo ">>> Check result: kubectl logs -n workload-identity-demo kv-reader -f"
+
 # ── ArgoCD ───────────────────────────────────────────
 echo ""
 echo ">>> Installing ArgoCD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
 
 echo ">>> Waiting for ArgoCD server..."
 kubectl wait --for=condition=available --timeout=180s deployment/argocd-server -n argocd
@@ -85,7 +94,10 @@ echo ""
 echo "  ArgoCD login: admin / $ARGOCD_PASSWORD"
 echo "  Grafana login: admin / prom-operator"
 echo ""
-echo "App Service:"
-echo "  Production: https://$APP_SERVICE_HOST"
-echo "  Staging:    https://$APP_SERVICE_STAGING_HOST"
+echo "App Service (separate — deploy independently):"
+echo "  ./scripts/start-app-service.sh"
+echo ""
+echo "Workload Identity Demo:"
+echo "  kubectl logs -n workload-identity-demo kv-reader -f"
+echo "  kubectl describe pod -n workload-identity-demo kv-reader"
 echo ""
