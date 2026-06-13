@@ -11,12 +11,7 @@ data:
     datasources:
       - name: Tempo
         type: tempo
-        url: http://tempo.monitoring.svc.cluster.local:3100
+        uid: tempo
+        url: http://tempo.monitoring.svc.cluster.local:3200
         access: proxy
         isDefault: false
-        jsonData:
-          lokiSearch:
-            datasourceUid: loki
-          tracesToLogs:
-            datasourceUid: loki
-            tags: ["pod", "namespace"]
