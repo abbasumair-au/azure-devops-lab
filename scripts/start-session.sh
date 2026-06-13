@@ -85,6 +85,44 @@ helm upgrade --install loki grafana/loki-stack \
   --wait \
   --timeout 5m
 
+# ── NGINX Ingress Controller ─────────────────────────
+echo ""
+echo ">>> Installing NGINX Ingress Controller..."
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --create-namespace \
+  --wait \
+  --timeout 5m
+
+# ── cert-manager ─────────────────────────────────────
+echo ""
+echo ">>> Installing cert-manager..."
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm upgrade --install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --set installCRDs=true \
+  --wait \
+  --timeout 5m
+
+# ── Ingress resources ─────────────────────────────────
+echo ""
+echo ">>> Waiting for Ingress public IP..."
+until [ -n "$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)" ]; do
+  sleep 5
+done
+
+INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export APP_HOST="myapp.$INGRESS_IP.nip.io"
+
+kubectl apply -f ~/azure-devops-lab/k8s/ingress/clusterissuer.yaml
+envsubst < ~/azure-devops-lab/k8s/ingress/ingress.yaml | kubectl apply -f -
+echo ">>> myapp Ingress created: https://$APP_HOST"
+
 # ── Seed ACR with initial image ──────────────────────
 echo ""
 echo ">>> Building and pushing initial myapp image to ACR..."
@@ -117,6 +155,9 @@ echo "  Grafana login: admin / prom-operator"
 echo ""
 echo "App Service (separate — deploy independently):"
 echo "  ./scripts/start-app-service.sh"
+echo ""
+echo "myapp public URL:"
+echo "  https://$APP_HOST  (self-signed cert — accept browser warning)"
 echo ""
 echo "Workload Identity Demo:"
 echo "  kubectl logs -n workload-identity-demo kv-reader -f"
