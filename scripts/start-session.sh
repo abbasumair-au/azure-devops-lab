@@ -67,12 +67,23 @@ echo ">>> ArgoCD admin password: $ARGOCD_PASSWORD"
 echo ""
 echo ">>> Installing Prometheus + Grafana..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --create-namespace \
   --wait \
   --timeout 10m
+
+# ── Loki + Promtail ──────────────────────────────────
+echo ""
+echo ">>> Installing Loki + Promtail..."
+helm upgrade --install loki grafana/loki-stack \
+  --namespace monitoring \
+  --set grafana.enabled=false \
+  --set prometheus.enabled=false \
+  --wait \
+  --timeout 5m
 
 # ── Seed ACR with initial image ──────────────────────
 echo ""
