@@ -74,6 +74,16 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   --wait \
   --timeout 10m
 
+# ── Seed ACR with initial image ──────────────────────
+echo ""
+echo ">>> Building and pushing initial myapp image to ACR..."
+ACR_NAME=$(terraform output -raw acr_login_server | cut -d'.' -f1)
+az acr build \
+  --registry "$ACR_NAME" \
+  --image myapp:latest \
+  ~/azure-devops-lab/app
+echo ">>> Image pushed to ACR."
+
 # ── ArgoCD Apps ──────────────────────────────────────
 echo ""
 echo ">>> Applying ArgoCD root app..."
