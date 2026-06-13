@@ -1,0 +1,47 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: myapp-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring  # must match kube-prometheus-stack release name
+spec:
+  groups:
+    - name: myapp.pods
+      interval: 30s
+      rules:
+
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="default"}[5m]) * 300 > 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash looping"
+            description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted more than once in the last 5 minutes."
+
+        - alert: PodNotReady
+          expr: kube_pod_status_ready{namespace="default", condition="false"} == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} is not ready"
+            description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been in a not-ready state for more than 5 minutes."
+
+        - alert: HighCPUUsage
+          expr: |
+            sum by (pod, namespace) (
+              rate(container_cpu_usage_seconds_total{namespace="default", container!=""}[5m])
+            )
+            /
+            sum by (pod, namespace) (
+              kube_pod_container_resource_requests{namespace="default", resource="cpu"}
+            )
+            * 100 > 80
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage on pod {{ $labels.pod }}"
+            description: "Pod {{ $labels.pod }} CPU usage is above 80% of its request for more than 2 minutes."
