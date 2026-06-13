@@ -75,6 +75,32 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   --wait \
   --timeout 10m
 
+# ── Tempo ────────────────────────────────────────────
+echo ""
+echo ">>> Installing Tempo..."
+helm repo add grafana https://grafana.github.io/helm-charts 2>/dev/null || true
+helm repo update
+helm upgrade --install tempo grafana/tempo \
+  --namespace monitoring \
+  --set tempo.storage.trace.backend=local \
+  --wait \
+  --timeout 5m
+
+# ── OTel Collector ────────────────────────────────────
+echo ""
+echo ">>> Installing OpenTelemetry Collector..."
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+  --namespace monitoring \
+  --set mode=deployment \
+  --set config.exporters.otlp.endpoint="tempo.monitoring.svc.cluster.local:4317" \
+  --set config.exporters.otlp.tls.insecure=true \
+  --set "config.service.pipelines.traces.exporters={otlp}" \
+  --set "config.service.pipelines.traces.receivers={otlp}" \
+  --wait \
+  --timeout 5m
+
 # ── Loki + Promtail ──────────────────────────────────
 echo ""
 echo ">>> Installing Loki + Promtail..."

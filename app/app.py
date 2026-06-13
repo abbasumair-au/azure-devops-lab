@@ -1,6 +1,24 @@
+import os
 from flask import Flask
-app = Flask(__name__)
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
 
+# ── OTel setup ────────────────────────────────────────────────────────────────
+OTEL_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4317")
+
+provider = TracerProvider()
+provider.add_span_processor(
+    BatchSpanProcessor(OTLPSpanExporter(endpoint=OTEL_ENDPOINT, insecure=True))
+)
+trace.set_tracer_provider(provider)
+
+app = Flask(__name__)
+FlaskInstrumentor().instrument_app(app)
+
+# ── Routes ────────────────────────────────────────────────────────────────────
 @app.route('/')
 def home():
     return {"status": "ok", "service": "myapp", "version": "1.0.0"}
@@ -15,5 +33,4 @@ def ready():
     return {"ready": "true"}
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)# v1.0.1
-# v1.0.2
+    app.run(host='0.0.0.0', port=5000)
