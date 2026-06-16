@@ -93,11 +93,7 @@ helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm
 helm repo update
 helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
   --namespace monitoring \
-  --set mode=deployment \
-  --set config.exporters.otlp.endpoint="tempo.monitoring.svc.cluster.local:4317" \
-  --set config.exporters.otlp.tls.insecure=true \
-  --set "config.service.pipelines.traces.exporters={otlp}" \
-  --set "config.service.pipelines.traces.receivers={otlp}" \
+  -f ~/azure-devops-lab/helm-charts/otel-collector-values.yaml \
   --wait \
   --timeout 5m
 
@@ -110,6 +106,10 @@ helm upgrade --install loki grafana/loki-stack \
   --set prometheus.enabled=false \
   --wait \
   --timeout 5m
+
+# loki-stack crée un ConfigMap datasource avec isDefault:true qui entre en conflit
+# avec le datasource Prometheus de kube-prometheus-stack → Grafana crashloop
+kubectl delete configmap -n monitoring loki-loki-stack --ignore-not-found
 
 # ── NGINX Ingress Controller ─────────────────────────
 echo ""
