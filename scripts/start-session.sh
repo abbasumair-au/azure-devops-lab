@@ -164,6 +164,18 @@ az acr build \
   ~/azure-devops-lab/app
 echo ">>> Image pushed to ACR (tags: latest, ${CHART_TAG})."
 
+# ── Trivy Operator ───────────────────────────────────
+echo ""
+echo ">>> Installing Trivy Operator..."
+helm repo add aqua https://aquasecurity.github.io/helm-charts/
+helm repo update
+helm upgrade --install trivy-operator aqua/trivy-operator \
+  --namespace trivy-system \
+  --create-namespace \
+  --set trivy.ignoreUnfixed=true \
+  --wait \
+  --timeout 5m
+
 # ── ArgoCD Apps ──────────────────────────────────────
 echo ""
 echo ">>> Applying ArgoCD root app..."
