@@ -41,7 +41,7 @@ resource "azurerm_kubernetes_cluster" "lab" {
 
   default_node_pool {
     name           = "system"
-    node_count     = 1
+    node_count     = 2
     vm_size        = "Standard_B2s"
     vnet_subnet_id = azurerm_subnet.aks.id
     max_pods       = 110

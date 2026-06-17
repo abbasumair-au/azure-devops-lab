@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull *)",
+      "Bash(git commit -m 'feat: add Trivy image scanning in CI with SARIF upload + Trivy Operator in AKS *)"
+    ]
+  }
+}
