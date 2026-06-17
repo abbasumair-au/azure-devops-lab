@@ -156,11 +156,13 @@ echo ">>> myapp Ingress created: https://$APP_HOST"
 echo ""
 echo ">>> Building and pushing initial myapp image to ACR..."
 ACR_NAME=$(terraform output -raw acr_login_server | cut -d'.' -f1)
+CHART_TAG=$(grep 'tag:' ~/azure-devops-lab/helm-charts/myapp/values.yaml | awk '{print $2}' | tr -d '"')
 az acr build \
   --registry "$ACR_NAME" \
-  --image myapp:latest \
+  --image "myapp:latest" \
+  --image "myapp:${CHART_TAG}" \
   ~/azure-devops-lab/app
-echo ">>> Image pushed to ACR."
+echo ">>> Image pushed to ACR (tags: latest, ${CHART_TAG})."
 
 # ── ArgoCD Apps ──────────────────────────────────────
 echo ""
