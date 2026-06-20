@@ -28,7 +28,7 @@ def load_kube_config(in_cluster: bool = False) -> None:
     else:
         config.load_kube_config()
 
-
+# -> list : La fonction retourne une liste.
 def list_deployments(namespace: Optional[str] = None) -> list:
     """
     Liste les deployments Kubernetes.
