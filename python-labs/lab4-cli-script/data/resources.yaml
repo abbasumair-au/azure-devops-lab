@@ -1,0 +1,33 @@
+- id: vm-001
+  type: VirtualMachine
+  region: eastus
+  tags:
+    env: prod
+  compliant: true
+
+- id: sa-001
+  type: StorageAccount
+  region: westeurope
+  tags:
+    env: dev
+  compliant: false
+
+- id: vm-002
+  type: VirtualMachine
+  region: westeurope
+  tags:
+    env: dev
+  compliant: true
+
+- id: pip-001
+  type: PublicIPAddress
+  region: eastus
+  tags: {}
+  compliant: false
+
+- id: sa-002
+  type: StorageAccount
+  region: eastus
+  tags:
+    env: prod
+  compliant: true

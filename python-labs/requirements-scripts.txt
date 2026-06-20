@@ -1,0 +1,24 @@
+# Azure
+azure-identity==1.17.1
+azure-mgmt-resource==23.1.1
+azure-mgmt-costmanagement==4.0.1
+azure-keyvault-secrets==4.8.0
+
+# Kubernetes
+kubernetes==30.1.0
+
+# GitHub / HTTP
+requests==2.32.3
+PyGithub==2.3.0
+
+# GitOps / Versioning
+gitpython==3.1.43
+
+# Templates
+jinja2==3.1.4
+
+# Chiffrement (GitHub Secrets)
+PyNaCl==1.5.0
+
+# Tests
+pytest==8.2.2
