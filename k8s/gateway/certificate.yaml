@@ -1,0 +1,15 @@
+# TLS material for the HTTPS listener on myapp-gateway.
+# dnsNames is templated with the nip.io host derived from the Gateway's
+# public IP, so this manifest is rendered with envsubst before apply.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: myapp-tls
+  namespace: nginx-gateway
+spec:
+  secretName: myapp-tls
+  dnsNames:
+    - ${APP_HOST}
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer

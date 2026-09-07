@@ -62,8 +62,23 @@ volumeMounts: []
 nodeSelector: {}
 tolerations: []
 affinity: {}
+# Legacy Ingress support is disabled; north-south traffic now goes through
+# the Gateway API (NGINX Gateway Fabric). See httpRoute below.
 ingress:
   enabled: false
 
 httpRoute:
-  enabled: false
+  enabled: true
+  annotations: {}
+  # Attaches to the shared myapp-gateway managed by NGINX Gateway Fabric.
+  # No sectionName -> the route binds to every listener (HTTP :80 and HTTPS :443).
+  parentRefs:
+    - name: myapp-gateway
+      namespace: nginx-gateway
+  # Empty -> the route serves whatever hostnames the gateway listeners allow.
+  hostnames: []
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /

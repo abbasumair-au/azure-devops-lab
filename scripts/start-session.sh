@@ -111,20 +111,6 @@ helm upgrade --install loki grafana/loki-stack \
 # avec le datasource Prometheus de kube-prometheus-stack → Grafana crashloop
 kubectl delete configmap -n monitoring loki-loki-stack --ignore-not-found
 
-# ── NGINX Ingress Controller ─────────────────────────
-echo ""
-echo ">>> Installing NGINX Ingress Controller..."
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx \
-  --create-namespace \
-  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz \
-  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-protocol"=http \
-  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-port"="10254" \
-  --wait \
-  --timeout 5m
-
 # ── cert-manager ─────────────────────────────────────
 echo ""
 echo ">>> Installing cert-manager..."
@@ -137,20 +123,37 @@ helm upgrade --install cert-manager jetstack/cert-manager \
   --wait \
   --timeout 5m
 
-# ── Ingress resources ─────────────────────────────────
+# ── NGINX Gateway Fabric (Gateway API) ───────────────
 echo ""
-echo ">>> Waiting for Ingress public IP..."
-until [ -n "$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)" ]; do
+echo ">>> Installing Gateway API CRDs (standard channel)..."
+kubectl kustomize "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v2.7.0" \
+  | kubectl apply -f -
+
+echo ">>> Installing NGINX Gateway Fabric..."
+helm upgrade --install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
+  --namespace nginx-gateway \
+  --create-namespace \
+  --wait \
+  --timeout 5m
+
+# ── Gateway + TLS for myapp ──────────────────────────
+echo ""
+echo ">>> Creating ClusterIssuer and Gateway..."
+kubectl apply -f ~/azure-devops-lab/k8s/gateway/clusterissuer.yaml
+kubectl apply -f ~/azure-devops-lab/k8s/gateway/gateway.yaml
+
+echo ">>> Waiting for NGINX Gateway Fabric public IP..."
+until [ -n "$(kubectl get svc myapp-gateway-nginx -n nginx-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null)" ]; do
   sleep 5
 done
 
-INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx \
+GATEWAY_IP=$(kubectl get svc myapp-gateway-nginx -n nginx-gateway \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-export APP_HOST="myapp.$INGRESS_IP.nip.io"
+export APP_HOST="myapp.$GATEWAY_IP.nip.io"
 
-kubectl apply -f ~/azure-devops-lab/k8s/ingress/clusterissuer.yaml
-envsubst < ~/azure-devops-lab/k8s/ingress/ingress.yaml | kubectl apply -f -
-echo ">>> myapp Ingress created: https://$APP_HOST"
+envsubst < ~/azure-devops-lab/k8s/gateway/certificate.yaml | kubectl apply -f -
+echo ">>> myapp Gateway ready: https://$APP_HOST"
+echo ">>> HTTPRoute is delivered by the myapp Helm chart (httpRoute.enabled=true)."
 
 # ── Seed ACR with initial image ──────────────────────
 echo ""
