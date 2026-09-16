@@ -19,11 +19,25 @@ fullnameOverride: ""
 serviceAccount:
   create: true
   automount: true
-  annotations: {}
+  annotations:
+    # Azure AD Workload Identity — patched by scripts/start-session.sh (sed)
+    # from `terraform output workload_identity_client_id`. Same mechanism as
+    # k8s/workload-identity/, a second federated credential
+    # (terraform/workload-identity.tf) scoped to this exact ServiceAccount.
+    # The Dapr sidecar shares this Pod's identity, which is how
+    # k8s/dapr/components/secretstore.yaml authenticates with zero credentials.
+    azure.workload.identity/client-id: ""
   name: ""
 
-podAnnotations: {}
-podLabels: {}
+podAnnotations:
+  dapr.io/enabled: "true"
+  dapr.io/app-id: "myapp"
+  dapr.io/app-port: "5000"
+  dapr.io/config: "dapr-tracing"
+podLabels:
+  # Required by AKS's workload identity webhook to inject the federated
+  # token volume into every container in the Pod, sidecar included.
+  azure.workload.identity/use: "true"
 podSecurityContext: {}
 securityContext: {}
 

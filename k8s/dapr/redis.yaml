@@ -1,0 +1,45 @@
+# Backs Dapr's state and pub/sub building blocks (k8s/dapr/components/) —
+# a self-hosted Redis rather than Cosmos DB/Service Bus, so this demo costs
+# nothing beyond the AKS node it runs on. No persistence, no auth: this is
+# throwaway lab state, not anything you'd want to keep across sessions.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-dapr
+  namespace: default
+  labels:
+    app: redis-dapr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-dapr
+  template:
+    metadata:
+      labels:
+        app: redis-dapr
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-dapr
+  namespace: default
+spec:
+  selector:
+    app: redis-dapr
+  ports:
+    - port: 6379
+      targetPort: 6379

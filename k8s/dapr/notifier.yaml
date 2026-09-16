@@ -1,0 +1,58 @@
+# A second, minimal service purely so pub/sub (k8s/dapr/components/pubsub.yaml)
+# has a subscriber to demonstrate — myapp's own /publish route publishes to
+# the "notifications" topic, this is what receives it. Image built/pushed by
+# scripts/start-session.sh alongside myapp's own image.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifier
+  namespace: default
+  labels:
+    app: notifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notifier
+  template:
+    metadata:
+      labels:
+        app: notifier
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "notifier"
+        dapr.io/app-port: "5001"
+        dapr.io/config: "dapr-tracing"
+    spec:
+      containers:
+        - name: notifier
+          image: "${ACR_LOGIN_SERVER}/notifier:latest"
+          ports:
+            - containerPort: 5001
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notifier
+  namespace: default
+spec:
+  selector:
+    app: notifier
+  ports:
+    - port: 5001
+      targetPort: 5001

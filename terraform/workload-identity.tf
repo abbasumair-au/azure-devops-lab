@@ -17,6 +17,21 @@ resource "azurerm_federated_identity_credential" "workload" {
   subject             = "system:serviceaccount:workload-identity-demo:kv-reader-sa"
 }
 
+# Second federated credential, same Managed Identity, different subject —
+# this is what lets myapp's own ServiceAccount (and therefore its Dapr
+# sidecar, which shares the pod's identity) read Key Vault directly via
+# Dapr's secretstores.azure.keyvault component. See
+# helm-charts/myapp/values.yaml's serviceAccount.annotations and
+# k8s/dapr/components/secretstore.yaml.
+resource "azurerm_federated_identity_credential" "myapp" {
+  name                = "fed-aks-myapp"
+  resource_group_name = azurerm_resource_group.lab.name
+  parent_id           = azurerm_user_assigned_identity.workload.id
+  issuer              = azurerm_kubernetes_cluster.lab.oidc_issuer_url
+  audience            = ["api://AzureADTokenExchange"]
+  subject             = "system:serviceaccount:default:myapp"
+}
+
 # ── KV RBAC: Terraform runner can create secrets ──────────────────────────────
 resource "azurerm_role_assignment" "kv_admin" {
   principal_id         = data.azurerm_client_config.current.object_id

@@ -1,0 +1,21 @@
+# myapp's and notifier's Dapr sidecars both talk to Redis directly (state
+# and pub/sub) — plain pod-to-pod traffic within "default", which
+# default-deny-ingress.yaml blocks unless explicitly allowed here.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dapr-to-redis
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: redis-dapr
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # No namespaceSelector -> matches pods in this policy's own namespace.
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 6379

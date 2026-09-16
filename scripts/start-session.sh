@@ -42,6 +42,8 @@ echo ""
 echo ">>> Deploying Workload Identity demo..."
 export WORKLOAD_IDENTITY_CLIENT_ID=$(terraform output -raw workload_identity_client_id)
 export KEY_VAULT_URI=$(terraform output -raw key_vault_uri)
+export KEY_VAULT_NAME=$(terraform output -raw key_vault_name)
+export TENANT_ID=$(terraform output -raw tenant_id)
 
 envsubst < ~/azure-devops-lab/k8s/workload-identity/namespace.yaml      | kubectl apply -f -
 envsubst < ~/azure-devops-lab/k8s/workload-identity/serviceaccount.yaml | kubectl apply -f -
@@ -49,6 +51,31 @@ envsubst < ~/azure-devops-lab/k8s/workload-identity/pod.yaml            | kubect
 
 echo ">>> Workload Identity pod deployed in namespace 'workload-identity-demo'."
 echo ">>> Check result: kubectl logs -n workload-identity-demo kv-reader -f"
+
+# ── Dapr ─────────────────────────────────────────────
+# Must be up before the ArgoCD root app is applied below — myapp's
+# Deployment carries dapr.io/* annotations that only mean anything once the
+# sidecar-injector webhook exists, and its Components/Configuration
+# (state, pub/sub, secrets, tracing) need to exist before myapp's Pod
+# starts asking its sidecar to use them.
+echo ""
+echo ">>> Installing Dapr..."
+helm repo add dapr https://dapr.github.io/helm-charts/
+helm repo update
+helm upgrade --install dapr dapr/dapr \
+  --namespace dapr-system \
+  --create-namespace \
+  --wait \
+  --timeout 5m
+
+echo ">>> Deploying Redis (backs Dapr state + pub/sub) and Dapr components..."
+kubectl apply -f ~/azure-devops-lab/k8s/dapr/redis.yaml
+kubectl wait --for=condition=available --timeout=120s deployment/redis-dapr -n default
+
+envsubst < ~/azure-devops-lab/k8s/dapr/components/secretstore.yaml | kubectl apply -f -
+kubectl apply -f ~/azure-devops-lab/k8s/dapr/components/statestore.yaml
+kubectl apply -f ~/azure-devops-lab/k8s/dapr/components/pubsub.yaml
+kubectl apply -f ~/azure-devops-lab/k8s/dapr/tracing-config.yaml
 
 # ── ArgoCD ───────────────────────────────────────────
 echo ""
@@ -155,17 +182,49 @@ envsubst < ~/azure-devops-lab/k8s/gateway/certificate.yaml | kubectl apply -f -
 echo ">>> myapp Gateway ready: https://$APP_HOST"
 echo ">>> HTTPRoute is delivered by the myapp Helm chart (httpRoute.enabled=true)."
 
-# ── Seed ACR with initial image ──────────────────────
+# ── Patch myapp's Helm values with this session's Managed Identity ───────
+# The client-id changes every session (the identity is destroyed and
+# recreated by terraform destroy/apply), so — same reasoning as
+# k8s/workload-identity/pod.yaml already had to deal with — this has to be
+# re-patched and re-committed every time. ArgoCD (syncPolicy.automated with
+# selfHeal) reads myapp's config only from git, so the patch has to land
+# there for the running Pod (and its Dapr sidecar) to pick it up.
 echo ""
-echo ">>> Building and pushing initial myapp image to ACR..."
+echo ">>> Patching helm-charts/myapp/values.yaml with this session's Managed Identity..."
+cd ~/azure-devops-lab
+VALUES=helm-charts/myapp/values.yaml
+sed -i "s|^\(\s*azure.workload.identity/client-id:\).*|\1 \"${WORKLOAD_IDENTITY_CLIENT_ID}\"|" "$VALUES"
+
+if ! git diff --quiet -- "$VALUES"; then
+  git add "$VALUES"
+  git commit -m "chore: refresh myapp Workload Identity client-id for this session"
+  git push
+else
+  echo ">>> No change (same Managed Identity as last session)."
+fi
+
+# ── Seed ACR with initial images ─────────────────────
+echo ""
+echo ">>> Building and pushing initial myapp + notifier images to ACR..."
+cd ~/azure-devops-lab/terraform
 ACR_NAME=$(terraform output -raw acr_login_server | cut -d'.' -f1)
+ACR_LOGIN_SERVER=$(terraform output -raw acr_login_server)
 CHART_TAG=$(grep 'tag:' ~/azure-devops-lab/helm-charts/myapp/values.yaml | awk '{print $2}' | tr -d '"')
 az acr build \
   --registry "$ACR_NAME" \
   --image "myapp:latest" \
   --image "myapp:${CHART_TAG}" \
   ~/azure-devops-lab/app
-echo ">>> Image pushed to ACR (tags: latest, ${CHART_TAG})."
+az acr build \
+  --registry "$ACR_NAME" \
+  --image "notifier:latest" \
+  ~/azure-devops-lab/app/notifier
+echo ">>> Images pushed to ACR (myapp: latest, ${CHART_TAG}; notifier: latest)."
+
+echo ""
+echo ">>> Deploying notifier (Dapr pub/sub subscriber)..."
+export ACR_LOGIN_SERVER
+envsubst < ~/azure-devops-lab/k8s/dapr/notifier.yaml | kubectl apply -f -
 
 # ── Trivy Operator ───────────────────────────────────
 echo ""
@@ -208,4 +267,12 @@ echo ""
 echo "Workload Identity Demo:"
 echo "  kubectl logs -n workload-identity-demo kv-reader -f"
 echo "  kubectl describe pod -n workload-identity-demo kv-reader"
+echo ""
+echo "Dapr — state, pub/sub, and Key Vault secrets, all through myapp's own sidecar:"
+echo "  curl -X POST https://$APP_HOST/state -d '{\"key\":\"demo\",\"value\":\"hello\"}' -H 'Content-Type: application/json'"
+echo "  curl https://$APP_HOST/state?key=demo"
+echo "  curl -X POST https://$APP_HOST/publish -d '{\"message\":\"hi notifier\"}' -H 'Content-Type: application/json'"
+echo "  kubectl logs -n default deployment/notifier -c notifier -f   # should show the published message"
+echo "  curl https://$APP_HOST/secret/lab-demo-secret"
+echo "  kubectl logs -n default deployment/myapp -c daprd            # sidecar's own logs"
 echo ""

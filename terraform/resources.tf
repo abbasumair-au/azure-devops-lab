@@ -77,9 +77,9 @@ resource "azurerm_key_vault" "lab" {
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
 
-  soft_delete_retention_days  = 7
-  purge_protection_enabled    = false # must be false to allow purge
-  enable_rbac_authorization   = true
+  soft_delete_retention_days = 7
+  purge_protection_enabled   = false # must be false to allow purge
+  enable_rbac_authorization  = true
 
   lifecycle {
     prevent_destroy = false
